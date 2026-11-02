@@ -1,4 +1,39 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>整理券 呼出システム</title></head><body><main><h1>整理券 呼出システム</h1><p>番号ボタンを押してください。</p><div id="buttons"></div><p id="status">音声を読み込み中…</p><button id="stop">再生停止</button></main><script>
-const sounds=new Map();let current=null,playing=false;const status=document.querySelector('#status');const grid=document.querySelector('#buttons');async function load(){const files=['呼出音.mp3',...Array.from({length:18},(_,i)=>`${i+1}.mp3`)];await Promise.all(files.map(async f=>{try{const r=await fetch('audio/'+encodeURIComponent(f));if(r.ok){const b=await r.blob();sounds.set(f==='呼出音.mp3'?'intro':f.replace('.mp3',''),URL.createObjectURL(b));}}catch(e){}}));status.textContent=sounds.size===19?'全18番号の音声を準備しました':'一部の音声が読み込めません';document.querySelectorAll('.num').forEach(b=>b.disabled=playing||!sounds.has(b.dataset.n)||!sounds.has('intro'));}async function play(n){if(playing)return;if(!sounds.has('intro')||!sounds.has(String(n))){status.textContent='音声を読み込めませんでした';return;}playing=true;update();status.textContent=n+'番を呼び出しています…';try{for(const k of ['intro',String(n)]){current=new Audio(sounds.get(k));await new Promise((resolve,reject)=>{current.addEventListener('ended',resolve,{once:true});current.addEventListener('error',()=>reject(new Error()),{once:true});current.play().catch(reject);});}status.textContent=n+'番の呼び出しが完了しました';}catch(e){status.textContent='再生できませんでした。ページを再読み込みしてください。';}finally{current=null;playing=false;update();}}function update(){document.querySelectorAll('.num').forEach(b=>b.disabled=playing||!sounds.has(b.dataset.n)||!sounds.has('intro'));}for(let n=1;n<=18;n++){const b=document.createElement('button');b.className='num';b.dataset.n=n;b.textContent=n+'番';b.disabled=true;b.style.cssText='font-size:22px;padding:18px;margin:6px;min-width:90px';b.onclick=()=>play(n);grid.appendChild(b);}document.querySelector('#stop').onclick=()=>{if(current){current.pause();current.currentTime=0;current=null;}playing=false;status.textContent='再生を停止しました';update();};load();
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>整理券 呼出システム</title>
+<style>
+:root{color-scheme:light;--ink:#18324b;--blue:#155eef;--bg:#f3f6fa}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;background:var(--bg);color:var(--ink)}
+main{max-width:760px;margin:auto;padding:22px 16px 40px}header{text-align:center;margin:12px 0 22px}
+h1{font-size:clamp(1.45rem,5vw,2rem);margin:0 0 8px}p{margin:8px 0;color:#526579}
+#status{font-weight:700;min-height:1.5em;color:#155eef;text-align:center;margin:14px 0}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}button{font:inherit;cursor:pointer}
+.num{border:0;border-radius:14px;background:white;color:var(--ink);font-weight:750;font-size:1.25rem;padding:20px 8px;box-shadow:0 2px 8px #18324b12;min-height:72px}
+.num:active{transform:scale(.98)}.num:disabled{opacity:.45;cursor:not-allowed}
+.panel{background:white;border-radius:14px;padding:16px;margin:14px 0;box-shadow:0 2px 8px #18324b10}
+.primary{background:var(--blue);color:white;border:0;border-radius:10px;padding:12px 16px;font-weight:700}
+.small{font-size:.9rem}@media(min-width:560px){.grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+</style></head><body><main>
+<header><h1>整理券 呼出システム</h1><p>番号を押すと「呼出音」→「番号のご案内」の順に再生します。</p></header>
+<div id="status" role="status" aria-live="polite">音声を読み込み中…</div>
+<div class="grid" id="buttons"></div>
+<section class="panel"><button class="primary" id="stop">再生を停止</button><p class="small">※スマートフォンはBluetoothスピーカーに接続してからご利用ください。最初に一度、番号ボタンを押して音声を有効にしてください。</p></section>
+</main>
+<script>
+const sounds=new Map();let current=null,playing=false;const status=document.querySelector('#status');
+async function loadBundled(){const names=['呼出音.mp3',...Array.from({length:18},(_,i)=>`${i+1}.mp3`)];
+await Promise.all(names.map(async name=>{try{const r=await fetch('audio/'+encodeURIComponent(name));if(r.ok){const blob=await r.blob();sounds.set(name==='呼出音.mp3'?'intro':name.replace('.mp3',''),URL.createObjectURL(blob));}}catch(e){}}));
+const missing=[];if(!sounds.has('intro'))missing.push('呼出音');for(let n=1;n<=18;n++)if(!sounds.has(String(n)))missing.push(n+'番');
+status.textContent=missing.length?'音声未登録：'+missing.join('、'):'全18番号の音声が準備できました';updateButtons();}
+function updateButtons(){document.querySelectorAll('.num').forEach(b=>b.disabled=playing||!sounds.has(b.dataset.n)||!sounds.has('intro'));}
+async function playSequence(n){if(playing)return;if(!sounds.has('intro')||!sounds.has(String(n))){status.textContent='音声ファイルがまだ登録されていません。';return;}
+playing=true;updateButtons();status.textContent=n+'番を呼び出しています…';
+try{for(const key of ['intro',String(n)]){current=new Audio(sounds.get(key));await new Promise((resolve,reject)=>{current.addEventListener('ended',resolve,{once:true});current.addEventListener('error',()=>reject(new Error()),{once:true});current.play().catch(reject);});}status.textContent=n+'番の呼び出しが完了しました。';}
+catch(e){status.textContent='再生できませんでした。音声ファイルを確認してください。';}
+finally{current=null;playing=false;updateButtons();}}
+const grid=document.querySelector('#buttons');for(let n=1;n<=18;n++){const b=document.createElement('button');b.className='num';b.textContent=n+'番';b.dataset.n=String(n);b.disabled=true;b.addEventListener('click',()=>playSequence(n));grid.appendChild(b);}
+document.querySelector('#stop').addEventListener('click',()=>{if(current){current.pause();current.currentTime=0;current=null;}playing=false;status.textContent='再生を停止しました。';updateButtons();});
+loadBundled();
 </script></body></html>
