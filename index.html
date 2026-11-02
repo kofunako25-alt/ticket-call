@@ -26,7 +26,7 @@ const sounds=new Map();let current=null,playing=false,cancelPlayback=null,stopRe
 const status=document.querySelector('#status');
 async function loadBundled(){
  const names=['呼出音.mp3',...Array.from({length:18},(_,i)=>`${i+1}.mp3`)];
- await Promise.all(names.map(async name=>{try{const r=await fetch('audio/'+encodeURIComponent(name));if(r.ok){const blob=await r.blob();sounds.set(name==='呼出音.mp3'?'intro':name.replace('.mp3',''),URL.createObjectURL(blob));}}catch(e){}}));
+ await Promise.all(names.map(async name=>{try{const r=await fetch(encodeURIComponent(name));if(r.ok){const blob=await r.blob();sounds.set(name==='呼出音.mp3'?'intro':name.replace('.mp3',''),URL.createObjectURL(blob));}}catch(e){}}));
  const missing=[];if(!sounds.has('intro'))missing.push('呼出音');for(let n=1;n<=18;n++)if(!sounds.has(String(n)))missing.push(n+'番');
  status.textContent=missing.length?'音声未登録：'+missing.join('、'):'全18番号の音声が準備できました';updateButtons();
 }
