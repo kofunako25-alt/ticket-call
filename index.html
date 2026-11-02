@@ -16,7 +16,7 @@ h1{font-size:clamp(1.45rem,5vw,2rem);margin:0 0 8px}p{margin:8px 0;color:#526579
 .primary{background:var(--blue);color:white;border:0;border-radius:10px;padding:12px 16px;font-weight:700}
 .small{font-size:.9rem}@media(min-width:560px){.grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
 </style></head><body><main>
-<header><h1>整理券 呼出システム</h1><p>番号を押すと「呼出音」→「番号のご案内」の順に再生します。</p></header>
+<header><h1>整理券 呼出システム</h1><p>番号を押すと、その番号のご案内を再生します。</p></header>
 <div id="status" role="status" aria-live="polite">音声を読み込み中…</div>
 <div class="grid" id="buttons"></div>
 <section class="panel"><button class="primary" id="stop">再生を停止</button><p class="small">※スマートフォンはBluetoothスピーカーに接続してからご利用ください。最初に一度、番号ボタンを押して音声を有効にしてください。</p></section>
@@ -25,17 +25,17 @@ h1{font-size:clamp(1.45rem,5vw,2rem);margin:0 0 8px}p{margin:8px 0;color:#526579
 const sounds=new Map();let current=null,playing=false,cancelPlayback=null,stopRequested=false;
 const status=document.querySelector('#status');
 async function loadBundled(){
- const names=['呼出音.mp3',...Array.from({length:18},(_,i)=>`${i+1}.mp3`)];
- await Promise.all(names.map(async name=>{try{const r=await fetch(encodeURIComponent(name));if(r.ok){const blob=await r.blob();sounds.set(name==='呼出音.mp3'?'intro':name.replace('.mp3',''),URL.createObjectURL(blob));}}catch(e){}}));
- const missing=[];if(!sounds.has('intro'))missing.push('呼出音');for(let n=1;n<=18;n++)if(!sounds.has(String(n)))missing.push(n+'番');
+ const names=Array.from({length:18},(_,i)=>`${i+1}.mp3`);
+ await Promise.all(names.map(async name=>{try{const r=await fetch(encodeURIComponent(name));if(r.ok){const blob=await r.blob();sounds.set(name.replace('.mp3',''),URL.createObjectURL(blob));}}catch(e){}}));
+ const missing=[];for(let n=1;n<=18;n++)if(!sounds.has(String(n)))missing.push(n+'番');
  status.textContent=missing.length?'音声未登録：'+missing.join('、'):'全18番号の音声が準備できました';updateButtons();
 }
-function updateButtons(){document.querySelectorAll('.num').forEach(b=>b.disabled=playing||!sounds.has(b.dataset.n)||!sounds.has('intro'));}
+function updateButtons(){document.querySelectorAll('.num').forEach(b=>b.disabled=playing||!sounds.has(b.dataset.n));}
 async function playSequence(n){
- if(playing)return;if(!sounds.has('intro')||!sounds.has(String(n))){status.textContent='音声ファイルがまだ登録されていません。';return;}
+ if(playing)return;if(!sounds.has(String(n))){status.textContent='音声ファイルがまだ登録されていません。';return;}
  playing=true;stopRequested=false;updateButtons();status.textContent=n+'番を呼び出しています…';
  try{
-  for(const key of ['intro',String(n)]){
+  for(const key of [String(n)]){
    if(stopRequested)break;current=new Audio(sounds.get(key));
    await new Promise((resolve,reject)=>{
     let settled=false;
